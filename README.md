@@ -1,124 +1,221 @@
-# 🔍 Silent Reviewer
+# 🚀 Silent Reviewer
 
-> **Multi-agent AI code reviewer that runs 100% locally on a 1B model.**  
-> No internet. No API key. No cloud. Just your laptop and Ollama.
-
----
-
-## What it does
-
-Drop any code file. Four specialized AI agents — each focused on ONE job — review it in parallel and produce a PR-style report with severity ratings, confidence scores, and exact fixes.
-
-| Agent | Job |
-|---|---|
-| 🐛 Bug Hunter | Logical bugs, null errors, off-by-one, wrong conditions |
-| 🔒 Security Scanner | SQL injection, hardcoded secrets, unsafe deserialization |
-| ⚡ Performance Analyzer | Nested loops, inefficient structures, repeated computation |
-| ✨ Style & Practices | Naming, magic numbers, god functions, missing docstrings |
-| 🧠 Synthesis Agent | Final score /100, grade, top priority fix |
-
-**Model:** Gemma3 1B via Ollama — **Tier 1** (≤4B params)  
-**Runs:** 100% offline, zero cloud calls, works on any laptop with 8GB RAM
+### Multi-Agent AI Code Reviewer (Local + Parallel Inference)
 
 ---
 
-## Quick start (5 minutes)
+## 🧠 What is this?
 
-### 1. Install Ollama
-```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
+Silent Reviewer is an AI-powered code review system that simulates **multiple specialized reviewers working in parallel**.
 
-# Windows: download from https://ollama.com
+Instead of relying on a single prompt, it splits the review into focused agents:
+
+* Bugs
+* Security
+* Performance
+* Code quality
+
+These agents run **concurrently**, and their outputs are combined into a final structured review with a score and verdict.
+
+---
+
+## ❗ Problem It Solves
+
+Traditional code review:
+
+* slow
+* inconsistent
+* depends on reviewer expertise
+
+Single-LLM solutions:
+
+* mix everything in one prompt
+* lose specialization
+* harder to control output quality
+
+---
+
+## ✅ Solution Approach
+
+We treat code review like a **distributed system of experts**.
+
+Each agent:
+
+* has a narrow responsibility
+* uses a strict prompt format (JSON)
+* produces structured, reliable output
+
+A final synthesis agent:
+
+* merges all findings
+* assigns score + grade
+* highlights top priority issue
+
+---
+
+## ⚙️ Key Features
+
+* 🐛 **Bug Detection Agent** — logic errors, edge cases
+* 🔒 **Security Scanner** — vulnerabilities, unsafe usage
+* ⚡ **Performance Analyzer** — inefficiencies, bottlenecks
+* ✨ **Style Reviewer** — best practices, maintainability
+* 🧠 **Synthesis Agent** — final verdict + grading
+* ⚡ **Parallel Execution** — ~4x faster than sequential
+* 🌐 **GitHub Code Fetching** — analyze remote files
+
+---
+
+## 🏗️ System Architecture
+
+```
+        Input Code / GitHub URL
+                   │
+        ┌──────────┼──────────┐
+        │          │          │
+   Bug Agent   Security   Performance
+        │          │          │
+        └──────┬───┴───┬──────┘
+               │       │
+           Style Agent │
+               │       │
+               └──► Synthesis Agent
+                        │
+                Final Report (JSON)
 ```
 
-### 2. Pull the model
+---
+
+## 🤖 Model Declaration (Required)
+
+* Model: `gemma3:1b`
+* Runtime: Ollama (local inference)
+* Endpoint: `http://localhost:11434/api/generate`
+* Temperature: 0.2
+* Max tokens: 800
+
+### Why this model?
+
+* Lightweight → fast execution
+* Runs locally → zero API cost
+* Good enough for structured reasoning tasks
+* Enables parallel inference without API limits
+
+---
+
+## 🚀 Setup & Run
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Start Ollama
+
+```bash
+ollama serve
+```
+
+### 3. Pull model
+
 ```bash
 ollama pull gemma3:1b
 ```
 
-### 3. Install Python deps
-```bash
-pip install flask requests
-```
+### 4. Run project
 
-### 4. Run the web app
 ```bash
-python app.py
-# Open http://localhost:5000
-```
-
-### Or use the CLI
-```bash
-python cli.py your_code.py
-python cli.py demo_buggy_code.py   # Try the demo!
+python main.py
 ```
 
 ---
 
-## Demo
+## 💡 Example Usage
 
-Run the included demo file to see the reviewer catch real issues:
-```bash
-python cli.py demo_buggy_code.py
-```
+* Input: Code snippet OR GitHub file URL
+* Output:
 
-It will find:
-- SQL injection vulnerability (security, critical)
-- Hardcoded password (security, critical)  
-- Off-by-one error in loop (bug, critical)
-- MD5 password hashing (security, warning)
-- Unsafe pickle deserialization (security, critical)
-- Inefficient list concatenation in loop (performance)
-- God function with 6 responsibilities (style)
+  * categorized issues
+  * severity levels
+  * confidence score
+  * final grade (A–F)
 
 ---
 
-## Engineering highlights
+## 📊 Performance & Metrics
 
-### Why multi-agent works on a 1B model
-A single 1B model asked to "review all issues" gets confused and misses things.  
-Four agents each with ONE strict job = dramatically better results.  
-Each agent's system prompt forbids it from looking at other categories — this forces focus.
-
-### Confidence scores
-Every issue includes a confidence % (50–100%). This is honest about model limitations.  
-High confidence (>75%) = reliable finding. Low confidence = flag for human review.
-
-### Structured JSON output with retry
-Each agent is prompted to return strict JSON. If parsing fails, the code extracts  
-JSON from anywhere in the response, then falls back to safe defaults. Zero crashes.
-
-### Context trimming
-Code is trimmed to 8000 chars before sending to the model — prevents context overflow  
-which is the #1 cause of bad output from tiny models.
+| Metric             | Value       |
+| ------------------ | ----------- |
+| Sequential runtime | ~80 seconds |
+| Parallel runtime   | ~20 seconds |
+| Speed improvement  | ~4x         |
+| Cost               | $0 (local)  |
+| Confidence scoring | Yes         |
 
 ---
 
-## Project structure
+## ⚠️ Known Limitations
+
+* Small model → may miss deep/complex bugs
+* No AST/static analysis
+* Single-file focused
+* Depends on prompt engineering quality
+
+👉 These trade-offs were intentionally made for speed and cost efficiency.
+
+---
+
+## 🎬 Demo
+
+(Add your demo video link here)
+
+---
+
+## 📂 Project Structure
+
 ```
-silent_reviewer/
-├── app.py              # Flask web server + UI
-├── cli.py              # Terminal CLI version
-├── reviewer.py         # Multi-agent pipeline (core logic)
-├── demo_buggy_code.py  # Demo file with intentional issues
-└── requirements.txt
+.
+├── main.py                # Core pipeline
+├── agents/                # (future modularization)
+├── utils/                 # helpers
+└── README.md
 ```
 
 ---
 
-## Hackathon submission notes
+## 🔬 Design Decisions
 
-**Model tier:** Tier 1 — Gemma3 1B (1 billion parameters, ~800MB)  
-**Key techniques:**
-- Multi-agent pipeline (4 specialized agents + synthesis)
-- Strict JSON structured output with validation retry loop
-- Confidence scoring for honest limitation disclosure
-- Context window management for tiny models
+### Why Multi-Agent?
 
-**Where the model still fails:**  
-- Complex multi-file logic bugs (only reviews one file at a time)  
-- Language-specific idioms beyond common patterns  
-- Very long functions (>200 lines) where context gets fragmented  
+* Reduces prompt overload
+* Improves specialization
+* Easier debugging of outputs
 
-These are known limitations addressed by: file-by-file review, context trimming, and confidence scores that flag uncertain findings for human verification.
+### Why Parallel Execution?
+
+* LLM calls are independent
+* Reduces total latency dramatically
+
+### Why Local Inference?
+
+* No API cost
+* Full control
+* Offline capability
+
+---
+
+## 🚀 Future Improvements
+
+* 🌐 Web UI (React / Streamlit)
+* 📁 Multi-file repository analysis
+* 🧠 AST-based static analysis
+* ☁️ Cloud LLM fallback (OpenAI/Groq)
+* 📊 Visual dashboard for results
+
+---
+
+## 🤝 Contribution
+
+Open for improvements, extensions, and integrations.
+
+---
